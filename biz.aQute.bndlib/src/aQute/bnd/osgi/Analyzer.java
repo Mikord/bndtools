@@ -2303,8 +2303,13 @@ public class Analyzer extends Processor {
 	private boolean analyzeJar(Jar jar, String prefix, boolean okToIncludeDirs) throws Exception {
 		Map<String,Clazz> mismatched = new HashMap<String,Clazz>();
 
+		Set<String> ignorePackagePaths = getIgnorePackagePaths();
+
 		next: for (String path : jar.getResources().keySet()) {
 			if (path.startsWith(prefix)) {
+				if (isIgnoredJarResource(path, ignorePackagePaths)) {
+					continue;
+				}
 
 				String relativePath = path.substring(prefix.length());
 
@@ -2369,6 +2374,27 @@ public class Analyzer extends Processor {
 			return false;
 		}
 		return true;
+	}
+
+	private Set<String> getIgnorePackagePaths() {
+		Parameters ignorePackage = getParameters(IGNORE_PACKAGE);
+
+		Set<String> ignorePackagePaths = new HashSet<>();
+		for (String ignorePrefix : ignorePackage.keySet()) {
+			ignorePackagePaths.add(
+					ignorePrefix.replace(".", "/") + "/"
+			);
+		}
+		return ignorePackagePaths;
+	}
+
+	private boolean isIgnoredJarResource(String path, Set<String> ignorePackagePaths) {
+		for (String ignorePrefix : ignorePackagePaths) {
+			if (path.startsWith(ignorePrefix)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
